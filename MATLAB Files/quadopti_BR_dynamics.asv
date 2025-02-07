@@ -1,0 +1,54 @@
+function [x,NE_Check,no_NE,k]=quadopti_BR_dynamics (alphas,mu,v,tau,R,N,demands,iters,epsilon,cong_hat_func, indiv_BR_func)
+    x=zeros(N*(R+1),iters);
+
+    stops=zeros(N,1);
+    NE_Check=false;
+    no_NE=false;
+    for i=1:N
+        m=(i-1)*(R+1);
+        x(m+1)=demands(i);
+    end
+    diag_mu=zeros(R+1,R+1);
+    for r=1:R
+        diag_mu(r+1,r+1)=mu(r);
+    end
+    v_stack=[0;v];
+
+    k=2;
+    while ~NE_Check && k<=iters && ~no_NE
+        for i=1:N
+            m=(i-1)*(R+1);
+            chi_hat_i=cong_hat_func(x(:,k-1),N,R,i);
+            x(m+1:m+R+1,k)=indiv_BR_func(alphas,diag_mu,v_stack,tau,R,demands,chi_hat_i,i);
+            if norm(x(m+1:m+R+1,k)-x(m+1:m+R+1,k-1))<epsilon
+                stops(i)=1;
+            end
+        end
+
+        if all(stops)
+            NE_Check=true;
+        end
+
+        if NE_Check==true
+            break
+        end
+
+        if k>2
+            if x(:,k)==x(:)
+
+        k=k+1;
+
+        if k>iters
+            break
+        end
+    end
+
+    if NE_Check==true
+        disp("success, completed in "+int2str(k-1)+" iterations")
+        for t=k+1:iters
+            x(:,t)=x(:,k);
+        end
+    else
+        disp("No success")
+    end
+end
